@@ -1,0 +1,82 @@
+package se331.rest.util;
+
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.storage.Acl;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.servlet.ServletException;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+
+@Component
+public class CloudStorageHelper {
+    private static Storage storage = null;
+    static{
+        InputStream serviceAccount = null;
+        try {
+            serviceAccount = new ClassPathResource("D:\\WORK\\SE_YEAR_3_T1\\ss\\Lab12_y3\\private-key-Lab12.json").getInputStream();
+            storage = StorageOptions.newBuilder()
+                    .setCredentials(GoogleCredentials
+                            .fromStream(serviceAccount))
+                    .setProjectId("imgupload-500b4")
+                    .build().getService();
+        }catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    // END INIT
+
+    public String uploadFile(MultipartFile filePart, final String bucketName) throws IOException{
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HHmmssSSS");
+        String dtString = sdf.format(new Date());
+        final String filename = dtString + "-"
+                +filePart.getOriginalFilename();
+        InputStream is = filePart.getInputStream();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        byte[] readBuf = new byte[4096];
+        while (is.available() > 0){
+            int bytesRead = is.read(readBuf);
+            os.write(readBuf, 0, bytesRead);
+        }
+        // Convert ByteArrayOutputStream into byte[]
+        BlobInfo blobInfo =
+                storage.create(
+                        BlobInfo
+                                .newBuilder(bucketName, filename)
+                                // modify access list to allow all users with link to read file
+                                .setAcl(new ArrayList<>(
+                                        Arrays.asList(Acl.of(Acl.User.ofAllUsers(), Acl.Role.READER))
+                                ))
+                                .build(),
+                        os.toByteArray());
+                return blobInfo.getMediaLink();
+    }
+        public String getImageUrl (MultipartFile file,
+                                   final String bucket) throws IOException, ServletException {
+        final String filename = file.getOriginalFilename();
+        //check extension of file
+            if(filename != null && !filename.isEmpty() && filename.contains(".")){
+                final String extension =
+                        filename.substring(filename.lastIndexOf('.') + 1);
+                String[] allowedExt = {"jpg","jepg","png","gif"};
+                for (String s : allowedExt){
+                    if (extension.equals(s)) {
+                        return this.uploadFile(file, bucket);
+                    }
+                }
+                throw new ServletException("file must be an image");
+            }
+            return null;
+        }
+
+}

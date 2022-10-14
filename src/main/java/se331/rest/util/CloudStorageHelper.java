@@ -24,10 +24,9 @@ public class CloudStorageHelper {
     static{
         InputStream serviceAccount = null;
         try {
-            serviceAccount = new ClassPathResource("D:\\WORK\\SE_YEAR_3_T1\\ss\\Lab12_y3\\private-key-Lab12.json").getInputStream();
+            serviceAccount = new ClassPathResource("private-key-Lab12.json").getInputStream();
             storage = StorageOptions.newBuilder()
-                    .setCredentials(GoogleCredentials
-                            .fromStream(serviceAccount))
+                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                     .setProjectId("imgupload-500b4")
                     .build().getService();
         }catch (IOException e) {
@@ -39,8 +38,7 @@ public class CloudStorageHelper {
     public String uploadFile(MultipartFile filePart, final String bucketName) throws IOException{
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HHmmssSSS");
         String dtString = sdf.format(new Date());
-        final String filename = dtString + "-"
-                +filePart.getOriginalFilename();
+        final String filename = dtString + "-" +filePart.getOriginalFilename();
         InputStream is = filePart.getInputStream();
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         byte[] readBuf = new byte[4096];
@@ -55,20 +53,20 @@ public class CloudStorageHelper {
                                 .newBuilder(bucketName, filename)
                                 // modify access list to allow all users with link to read file
                                 .setAcl(new ArrayList<>(
-                                        Arrays.asList(Acl.of(Acl.User.ofAllUsers(), Acl.Role.READER))
-                                ))
+                                        Arrays.asList(Acl.of(Acl.User.ofAllUsers(), Acl.Role.READER))))
                                 .build(),
                         os.toByteArray());
+                //return the public download link
                 return blobInfo.getMediaLink();
     }
         public String getImageUrl (MultipartFile file,
                                    final String bucket) throws IOException, ServletException {
-        final String filename = file.getOriginalFilename();
+        final String fileName = file.getOriginalFilename();
         //check extension of file
-            if(filename != null && !filename.isEmpty() && filename.contains(".")){
+            if(fileName != null && !fileName.isEmpty() && fileName.contains(".")){
                 final String extension =
-                        filename.substring(filename.lastIndexOf('.') + 1);
-                String[] allowedExt = {"jpg","jepg","png","gif"};
+                        fileName.substring(fileName.lastIndexOf('.') + 1);
+                String[] allowedExt = {"jpg", "jpeg", "png", "gif"};
                 for (String s : allowedExt){
                     if (extension.equals(s)) {
                         return this.uploadFile(file, bucket);
